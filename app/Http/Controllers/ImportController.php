@@ -4,37 +4,32 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Vtiful\Kernel\Excel;
+
 
 class ImportController extends Controller
 {
+
     public function importForm()
     {
         return view('import.form');
     }
-    public function import(Request $request)
+    public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:csv,txt',
+            'csv_file' => 'required|mimes:csv,txt|max:2048', // Validate file type and size
         ]);
 
-        try {
-            $data = Excel::toArray(new DataImport, $request->file('file'));
+        if ($request->file('csv_file')->isValid()) {
+            $file = $request->file('csv_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
 
-            // Assuming your DataImport class processes and validates the data, you can use it like this:
-            foreach ($data[0] as $row) {
-                // Process and validate the data here if necessary
-                // For example, you can create new user records:
-                DB::table('users')->insert([
-                    'name' => $row['name'],
-                    'email' => $row['email'],
-                    // Add other columns as needed
-                ]);
-            }
+            // Store the file in a directory (e.g., storage/csv)
+            $file->storeAs('csv', $fileName);
 
-            return redirect()->back()->with('success', 'Data imported successfully.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error importing data: ' . $e->getMessage());
+            return redirect()->back()->with('success', 'CSV file uploaded successfully.');
         }
+
+        return redirect()->back()->with('error', 'Invalid CSV file.');
     }
+
 }
